@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE Admin App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LINE Admin App</h1>
+            <p class="subtitle">LINE公式アカウント管理システム</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="dashboard">📊 ダッシュボード</button>
+            <button class="tab-button" data-tab="users">ユーザー管理</button>
+            <button class="tab-button" data-tab="messages">メッセージ履歴</button>
+            <button class="tab-button" data-tab="scheduled">スケジュール配信</button>
+            <button class="tab-button" data-tab="integrations">外部連携</button>
+            <button class="tab-button" data-tab="settings">設定</button>
+        </nav>
+
+        <main>
+            <!-- Dashboard Tab -->
+            <div class="tab-content active" id="dashboard-tab">
+                <style>
+                    .stats-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 20px;
+                        margin-bottom: 30px;
+                    }
+
+                    .stat-card {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 25px;
+                        border-radius: 12px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    }
+
+                    .stat-card h3 {
+                        font-size: 0.9rem;
+                        opacity: 0.9;
+                        margin-bottom: 10px;
+                    }
+
+                    .stat-card .stat-value {
+                        font-size: 2.5rem;
+                        font-weight: bold;
+                    }
+
+                    .chart-container {
+                        background: white;
+                        padding: 25px;
+                        border-radius: 12px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                        margin-bottom: 20px;
+                    }
+
+                    .chart-container h3 {
+                        margin-bottom: 20px;
+                        color: #2d3748;
+                    }
+
+                    .bar-chart {
+                        display: flex;
+                        align-items: flex-end;
+                        height: 200px;
+                        gap: 10px;
+                    }
+
+                    .bar {
+                        flex: 1;
+                        background: linear-gradient(to top, #06C755, #05B34A);
+                        border-radius: 4px 4px 0 0;
+                        position: relative;
+                        transition: all 0.3s;
+                    }
+
+                    .bar:hover {
+                        opacity: 0.8;
+                    }
+
+                    .bar-label {
+                        position: absolute;
+                        bottom: -25px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        font-size: 0.75rem;
+                        color: #666;
+                        white-space: nowrap;
+                    }
+
+                    .bar-value {
+                        position: absolute;
+                        top: -20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        font-size: 0.75rem;
+                        font-weight: bold;
+                        color: #2d3748;
+                    }
+                </style>
+
+                <div class="section-header">
+                    <h2>システム統計</h2>
+                    <button class="btn btn-primary" onclick="loadDashboard()">🔄 更新</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>総ユーザー数</h3>
+                        <div class="stat-value" id="total-users">-</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <h3>総メッセージ数</h3>
+                        <div class="stat-value" id="total-messages">-</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <h3>今日のメッセージ</h3>
+                        <div class="stat-value" id="messages-today">-</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <h3>今週の新規ユーザー</h3>
+                        <div class="stat-value" id="new-users-week">-</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                        <h3>配信待ちメッセージ</h3>
+                        <div class="stat-value" id="pending-messages">-</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                        <h3>今後のイベント</h3>
+                        <div class="stat-value" id="upcoming-events">-</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>メッセージタイプ分布</h3>
+                    <div id="message-types-chart" class="bar-chart">
+                        <p style="text-align: center; color: #999;">データを読み込み中...</p>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>時間別アクティビティ（過去7日間）</h3>
+                    <div id="hourly-activity-chart" class="bar-chart">
+                        <p style="text-align: center; color: #999;">データを読み込み中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-content" id="users-tab">
+                <div class="section-header">
+                    <h2>登録ユーザー一覧</h2>
+                    <button class="btn btn-primary" onclick="loadUsers()">更新</button>
+                </div>
+                <div id="users-list" class="data-list">
+                    <p class="loading">データを読み込み中...</p>
+                </div>
+            </div>
+
+            <!-- Messages Tab -->
+            <div class="tab-content" id="messages-tab">
+                <div class="section-header">
+                    <h2>受信メッセージ履歴</h2>
+                    <div class="controls">
+                        <label>
+                            表示件数:
+                            <select id="message-limit" onchange="loadMessages()">
+                                <option value="50">50件</option>
+                                <option value="100" selected>100件</option>
+                                <option value="200">200件</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-primary" onclick="loadMessages()">更新</button>
+                    </div>
+                </div>
+                <div id="messages-list" class="data-list">
+                    <p class="loading">データを読み込み中...</p>
+                </div>
+            </div>
+
+            <!-- Scheduled Messages Tab -->
+            <div class="tab-content" id="scheduled-tab">
+                <div class="section-header">
+                    <h2>スケジュール配信管理</h2>
+                </div>
+
+                <div class="form-card">
+                    <h3>新規スケジュール作成</h3>
+                    <form id="scheduled-form" onsubmit="createScheduledMessage(event)">
+                        <div class="form-group">
+                            <label>配信先</label>
+                            <select id="scheduled-user-id">
+                                <option value="">全ユーザー（ブロードキャスト）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>メッセージ内容</label>
+                            <textarea id="scheduled-text" required rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>配信日時</label>
+                            <input type="datetime-local" id="scheduled-time" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">スケジュール登録</button>
+                    </form>
+                </div>
+
+                <div class="section-header">
+                    <h3>登録済みスケジュール</h3>
+                    <button class="btn btn-secondary" onclick="loadScheduledMessages()">更新</button>
+                </div>
+                <div id="scheduled-list" class="data-list">
+                    <p class="loading">データを読み込み中...</p>
+                </div>
+            </div>
+
+            <!-- Integrations Tab -->
+            <div class="tab-content" id="integrations-tab">
+                <div class="section-header">
+                    <h2>外部サービス連携</h2>
+                </div>
+
+                <div class="form-card">
+                    <h3>🗒️ Notion</h3>
+                    <p>ユーザーとメッセージデータをNotionデータベースに同期</p>
+                    <button class="btn btn-primary" onclick="syncToNotion()">Notionに同期</button>
+                    <p class="note" style="margin-top: 10px;">※ 設定でNotion API Keyを設定してください</p>
+                </div>
+
+                <div class="form-card">
+                    <h3>📊 Airtable</h3>
+                    <p>データをAirtableベースに自動エクスポート</p>
+                    <button class="btn btn-primary" onclick="syncToAirtable()">Airtableに同期</button>
+                    <p class="note" style="margin-top: 10px;">※ 設定でAirtable API Keyとベ ASID を設定してください</p>
+                </div>
+
+                <div class="form-card">
+                    <h3>📈 Google Sheets</h3>
+                    <p>スプレッドシートにデータを書き込み</p>
+                    <button class="btn btn-primary" onclick="syncToGoogleSheets()">Google Sheetsに同期</button>
+                    <p class="note" style="margin-top: 10px;">※ 設定でGoogle認証情報を設定してください</p>
+                </div>
+
+                <div class="info-card">
+                    <h3>ℹ️ 外部連携について</h3>
+                    <p>上記の機能は現在スタブ実装です。各サービスのAPI Keyを設定タブで設定すると、実際にデータを同期できるようになります。</p>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settings-tab">
+                <div class="section-header">
+                    <h2>システム設定</h2>
+                </div>
+
+                <div class="form-card">
+                    <h3>LINE設定</h3>
+                    <form id="line-settings-form" onsubmit="saveLineSetting(event)">
+                        <div class="form-group">
+                            <label>LINE Channel Access Token</label>
+                            <input type="password" id="line-channel-token" placeholder="LINE Bot のアクセストークン">
+                        </div>
+                        <div class="form-group">
+                            <label>LINE Channel Secret</label>
+                            <input type="password" id="line-channel-secret" placeholder="Webhook 検証用シークレット">
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </form>
+                </div>
+
+                <div class="form-card">
+                    <h3>通知設定</h3>
+                    <form id="notification-settings-form" onsubmit="saveNotificationSettings(event)">
+                        <div class="form-group">
+                            <label>LINE Notify Token</label>
+                            <input type="password" id="line-notify-token" placeholder="LINE Notify のアクセストークン">
+                        </div>
+                        <div class="form-group">
+                            <label>Slack Webhook URL</label>
+                            <input type="url" id="slack-webhook-url" placeholder="https://hooks.slack.com/services/...">
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </form>
+                </div>
+
+                <div class="info-card">
+                    <h3>Webhook URL</h3>
+                    <p>以下のURLをLINE Developersコンソールに設定してください：</p>
+                    <code id="webhook-url">http://your-server:3000/webhook/line</code>
+                    <p class="note">※ 本番環境ではHTTPS対応のURL（ngrokやサーバーのURL）を使用してください</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

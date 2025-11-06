@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - LINE Admin App</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 10px;
+        }
+
+        .bar {
+            flex: 1;
+            background: linear-gradient(to top, #06C755, #05B34A);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 ダッシュボード</h1>
+            <p class="subtitle">システム統計とアクティビティ</p>
+        </header>
+
+        <main style="padding: 30px;">
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <h3>総ユーザー数</h3>
+                    <div class="stat-value" id="total-users">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>総メッセージ数</h3>
+                    <div class="stat-value" id="total-messages">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <h3>今日のメッセージ</h3>
+                    <div class="stat-value" id="messages-today">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <h3>今週の新規ユーザー</h3>
+                    <div class="stat-value" id="new-users-week">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <h3>配信待ちメッセージ</h3>
+                    <div class="stat-value" id="pending-messages">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                    <h3>今後のイベント</h3>
+                    <div class="stat-value" id="upcoming-events">-</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>メッセージタイプ分布</h3>
+                <div id="message-types-chart" class="bar-chart">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>時間別アクティビティ（過去7日間）</h3>
+                <div id="hourly-activity-chart" class="bar-chart">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button class="btn btn-primary" onclick="window.location.href='index.html'">
+                    ← 管理画面に戻る
+                </button>
+                <button class="btn btn-secondary" onclick="loadDashboard()">
+                    🔄 更新
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const isTauri = window.__TAURI__ !== undefined;
+        const invoke = isTauri ? window.__TAURI__.core.invoke : async () => null;
+
+        async function loadDashboard() {
+            try {
+                const stats = await invoke('get_dashboard_stats');
+
+                // Update stat cards
+                document.getElementById('total-users').textContent = stats.total_users.toLocaleString();
+                document.getElementById('total-messages').textContent = stats.total_messages.toLocaleString();
+                document.getElementById('messages-today').textContent = stats.messages_today.toLocaleString();
+                document.getElementById('new-users-week').textContent = stats.new_users_this_week.toLocaleString();
+                document.getElementById('pending-messages').textContent = stats.pending_scheduled_messages.toLocaleString();
+                document.getElementById('upcoming-events').textContent = stats.upcoming_calendar_events.toLocaleString();
+
+                // Render message types chart
+                renderMessageTypesChart(stats.message_types);
+
+                // Render hourly activity chart
+                renderHourlyActivityChart(stats.hourly_activity);
+
+            } catch (error) {
+                console.error('Failed to load dashboard:', error);
+                alert('ダッシュボードの読み込みに失敗しました: ' + error);
+            }
+        }
+
+        function renderMessageTypesChart(messageTypes) {
+            const container = document.getElementById('message-types-chart');
+            container.innerHTML = '';
+
+            if (!messageTypes || messageTypes.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">データがありません</p>';
+                return;
+            }
+
+            const maxCount = Math.max(...messageTypes.map(m => m.count));
+
+            messageTypes.forEach(type => {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                const heightPercent = (type.count / maxCount) * 100;
+                bar.style.height = heightPercent + '%';
+
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = type.message_type;
+
+                const value = document.createElement('div');
+                value.className = 'bar-value';
+                value.textContent = type.count;
+
+                bar.appendChild(label);
+                bar.appendChild(value);
+                container.appendChild(bar);
+            });
+        }
+
+        function renderHourlyActivityChart(hourlyActivity) {
+            const container = document.getElementById('hourly-activity-chart');
+            container.innerHTML = '';
+
+            if (!hourlyActivity || hourlyActivity.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">データがありません</p>';
+                return;
+            }
+
+            const maxCount = Math.max(...hourlyActivity.map(h => h.count));
+
+            // Fill in all 24 hours
+            for (let hour = 0; hour < 24; hour++) {
+                const data = hourlyActivity.find(h => h.hour === hour);
+                const count = data ? data.count : 0;
+
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                bar.style.height = Math.max(heightPercent, 2) + '%';
+
+                const label = document.createElement('div');
+                label.className = 'bar-label';
+                label.textContent = hour + '時';
+
+                if (count > 0) {
+                    const value = document.createElement('div');
+                    value.className = 'bar-value';
+                    value.textContent = count;
+                    bar.appendChild(value);
+                }
+
+                bar.appendChild(label);
+                container.appendChild(bar);
+            }
+        }
+
+        // Load dashboard on page load
+        window.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
+</body>
+</html>
