@@ -173,6 +173,10 @@ cargo tauri build --target x86_64-pc-windows-msvc
 
 MIT License
 
+Copyright (c) 2025 石津恭輔 (Kyosuke Ishizu)
+
 ## 開発者
+
+石津恭輔 (Kyosuke Ishizu)
 
 Built with Tauri and Rust
